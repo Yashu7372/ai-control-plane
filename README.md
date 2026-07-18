@@ -46,6 +46,14 @@ ai-control-plane init /path/to/repository
 
 Existing instruction files are preserved unless `--force` is supplied. Limit generation to selected providers with `--providers codex copilot`.
 
+All providers share `.ai-control-plane/common` rather than maintaining separate copies of control-plane state:
+
+- `common/memory/HANDOFF.md` — decisions, validation evidence and unfinished work
+- `common/governance/policy.yml` — safety and approval boundaries
+- `common/workflows/feature-delivery.yml` — the default durable DAG workflow
+
+Generated Codex, Claude and Copilot instructions require agents to load this common contract before task-specific context.
+
 Generate a deterministic repository inventory and a task-focused, token-budgeted context pack:
 
 ```bash
@@ -59,8 +67,8 @@ The default outputs are `.ai-control-plane/repository-breakdown.{md,json}` and `
 Validate or submit the generated DAG workflow to the durable task queue:
 
 ```bash
-ai-control-plane workflow-validate /path/to/repository/.ai-control-plane/workflows/feature-delivery.yml
-ai-control-plane workflow-start /path/to/repository/.ai-control-plane/workflows/feature-delivery.yml \
+ai-control-plane workflow-validate /path/to/repository/.ai-control-plane/common/workflows/feature-delivery.yml
+ai-control-plane workflow-start /path/to/repository/.ai-control-plane/common/workflows/feature-delivery.yml \
   --input '{"ticket":"ABC-123","repository":"sample-service"}'
 ai-control-plane-worker --once
 ```

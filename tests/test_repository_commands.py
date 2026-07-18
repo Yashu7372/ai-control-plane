@@ -18,7 +18,28 @@ def test_scaffolder_creates_provider_files_without_overwriting(tmp_path: Path):
     assert existing.read_text(encoding="utf-8") == "custom"
     assert (tmp_path / "CLAUDE.md").exists()
     assert (tmp_path / ".github/copilot-instructions.md").exists()
-    assert (tmp_path / ".ai-control-plane/workflows/feature-delivery.yml").exists()
+    common = tmp_path / ".ai-control-plane/common"
+    assert (common / "README.md").exists()
+    assert (common / "memory/HANDOFF.md").exists()
+    assert (common / "governance/policy.yml").exists()
+    assert (common / "workflows/feature-delivery.yml").exists()
+
+
+def test_all_provider_instructions_reference_common_control_plane(tmp_path: Path):
+    AgentScaffolder().materialize(tmp_path, {"codex", "claude", "copilot"})
+
+    instruction_paths = (
+        tmp_path / "AGENTS.md",
+        tmp_path / "CLAUDE.md",
+        tmp_path / ".claude/agents/repository-analyst.md",
+        tmp_path / ".github/copilot-instructions.md",
+        tmp_path / ".github/agents/repository-analyst.agent.md",
+    )
+    for path in instruction_paths:
+        assert ".ai-control-plane/common" in path.read_text(encoding="utf-8")
+
+    config = (tmp_path / ".ai-control-plane/config.yml").read_text(encoding="utf-8")
+    assert "default: .ai-control-plane/common/workflows/feature-delivery.yml" in config
 
 
 def test_repository_analyzer_detects_technology_and_ignores_build_output(tmp_path: Path):

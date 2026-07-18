@@ -1,0 +1,9 @@
+:root { font-family: Inter, system-ui, sans-serif; color-scheme: light dark; }
+body { margin: 0; background: #111827; color: #f9fafb; }
+main { max-width: 1100px; margin: 0 auto; padding: 3rem 1.5rem; }
+header { margin-bottom: 2rem; }
+h1 { margin: 0 0 .5rem; font-size: 2.25rem; }
+p { color: #cbd5e1; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem; }
+article { background: #1f2937; border: 1px solid #374151; border-radius: 14px; padding: 1.25rem; box-shadow: 0 12px 30px rgba(0,0,0,.2); }
+pre { overflow: auto; white-space: pre-wrap; color: #d1fae5; }

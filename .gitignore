@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+dist/
+build/
+
+# Local control-plane runtime state
+.ai-control-plane/*.db
+.ai-control-plane/*.db-*

@@ -35,6 +35,42 @@ pytest
 uvicorn apps.api.main:app --reload
 ```
 
+## Bootstrap and run a repository workflow
+
+Install the package, then initialize a target repository with provider-neutral control-plane files plus native instructions for Codex, Claude, and GitHub Copilot:
+
+```bash
+ai-control-plane init /path/to/repository --dry-run
+ai-control-plane init /path/to/repository
+```
+
+Existing instruction files are preserved unless `--force` is supplied. Limit generation to selected providers with `--providers codex copilot`.
+
+Generate a deterministic repository inventory and a task-focused, token-budgeted context pack:
+
+```bash
+ai-control-plane repo-breakdown /path/to/repository
+ai-control-plane context-generate /path/to/repository \
+  --task "Implement ABC-123 without changing public API contracts"
+```
+
+The default outputs are `.ai-control-plane/repository-breakdown.{md,json}` and `.ai-control-plane/context/CONTEXT.md` inside the target repository.
+
+Validate or submit the generated DAG workflow to the durable task queue:
+
+```bash
+ai-control-plane workflow-validate /path/to/repository/.ai-control-plane/workflows/feature-delivery.yml
+ai-control-plane workflow-start /path/to/repository/.ai-control-plane/workflows/feature-delivery.yml \
+  --input '{"ticket":"ABC-123","repository":"sample-service"}'
+ai-control-plane-worker --once
+```
+
+Supported repository knowledge documents can also be persisted for later retrieval:
+
+```bash
+ai-control-plane knowledge-ingest /path/to/repository --source sample-service
+```
+
 Serve `apps/dashboard` with any static file server. By default it connects to `http://localhost:8000`.
 
 ## Safety model

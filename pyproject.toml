@@ -16,6 +16,15 @@ dev=["pytest>=8", "httpx>=0.27"]
 ai-control-plane="apps.cli.main:main"
 ai-control-plane-worker="apps.worker.main:main"
 
+[build-system]
+requires=["setuptools>=68", "wheel"]
+build-backend="setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where=["."]
+include=["apps*", "packages*"]
+namespaces=true
+
 [tool.pytest.ini_options]
 pythonpath=["."]
 testpaths=["tests"]

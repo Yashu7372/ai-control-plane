@@ -43,6 +43,15 @@ class DurableTaskQueue:
                     updated_at REAL NOT NULL
                 );
                 CREATE INDEX IF NOT EXISTS idx_tasks_state ON tasks(state, created_at);
+                CREATE TABLE IF NOT EXISTS task_dependencies (
+                    task_id TEXT NOT NULL,
+                    depends_on_task_id TEXT NOT NULL,
+                    PRIMARY KEY (task_id, depends_on_task_id),
+                    FOREIGN KEY (task_id) REFERENCES tasks(id),
+                    FOREIGN KEY (depends_on_task_id) REFERENCES tasks(id)
+                );
+                CREATE INDEX IF NOT EXISTS idx_task_dependencies_task
+                    ON task_dependencies(task_id);
                 """
             )
 
@@ -51,15 +60,35 @@ class DurableTaskQueue:
         connection.row_factory = sqlite3.Row
         return connection
 
-    def enqueue(self, task_type: str, payload: dict[str, Any], max_attempts: int = 3) -> str:
+    def enqueue(
+        self,
+        task_type: str,
+        payload: dict[str, Any],
+        max_attempts: int = 3,
+        depends_on: tuple[str, ...] = (),
+    ) -> str:
         if max_attempts < 1:
             raise ValueError("max_attempts must be positive")
+        if len(depends_on) != len(set(depends_on)):
+            raise ValueError("task dependencies must be unique")
         task_id = uuid.uuid4().hex
         now = time.time()
         with self._connect() as connection:
+            if depends_on:
+                placeholders = ",".join("?" for _ in depends_on)
+                count = connection.execute(
+                    f"SELECT COUNT(*) FROM tasks WHERE id IN ({placeholders})", depends_on
+                ).fetchone()[0]
+                if count != len(depends_on):
+                    raise KeyError("one or more dependency tasks do not exist")
+            initial_state = "BLOCKED" if depends_on else "READY"
             connection.execute(
-                "INSERT INTO tasks VALUES (?, ?, ?, 'READY', 0, ?, NULL, NULL, NULL, ?, ?)",
-                (task_id, task_type, json.dumps(payload, sort_keys=True), max_attempts, now, now),
+                "INSERT INTO tasks VALUES (?, ?, ?, ?, 0, ?, NULL, NULL, NULL, ?, ?)",
+                (task_id, task_type, json.dumps(payload, sort_keys=True), initial_state, max_attempts, now, now),
+            )
+            connection.executemany(
+                "INSERT INTO task_dependencies(task_id, depends_on_task_id) VALUES (?, ?)",
+                ((task_id, dependency) for dependency in depends_on),
             )
         return task_id
 
@@ -67,6 +96,21 @@ class DurableTaskQueue:
         now = time.time()
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
+            connection.execute(
+                """
+                UPDATE tasks
+                SET state='READY', updated_at=?
+                WHERE state='BLOCKED'
+                  AND NOT EXISTS (
+                    SELECT 1
+                    FROM task_dependencies dependency
+                    JOIN tasks prerequisite ON prerequisite.id=dependency.depends_on_task_id
+                    WHERE dependency.task_id=tasks.id
+                      AND prerequisite.state!='SUCCEEDED'
+                  )
+                """,
+                (now,),
+            )
             row = connection.execute(
                 """
                 SELECT * FROM tasks
@@ -127,6 +171,14 @@ class DurableTaskQueue:
         if row is None:
             raise KeyError(task_id)
         return self._decode(row)
+
+    def dependencies(self, task_id: str) -> tuple[str, ...]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT depends_on_task_id FROM task_dependencies WHERE task_id=? ORDER BY depends_on_task_id",
+                (task_id,),
+            ).fetchall()
+        return tuple(row["depends_on_task_id"] for row in rows)
 
     def _transition(self, task_id: str, worker_id: str, state: str, error: str | None) -> None:
         with self._connect() as connection:

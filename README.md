@@ -1,23 +1,21 @@
 # AI Control Plane
 
-Generalized prototype for durable AI-assisted delivery workflows with DAG dependencies, approvals, retries, cancellation, evidence, REST APIs, and a worker.
+This branch contains the generalized form of the uploaded control-plane prototype. The implementation is being migrated from the prototype, not regenerated from an empty scaffold.
 
-## Run
+## Structure
 
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python -m pytest -q
-python run.py
-```
+- `apps/control-plane-api` — HTTP control-plane entrypoint
+- `apps/worker` — durable worker entrypoint
+- `apps/cli` — operator CLI
+- `packages/workflow-engine` — workflow orchestration and task state
+- `packages/memory-engine` — persistent session, event, evidence and handoff memory
+- `packages/governance-engine` — deny-by-default execution policy
+- `packages/mcp-registry` — tool registration and governed dispatch
+- `packages/cache-engine` — durable cache contracts
+- `packages/common` — redaction and shared utilities
 
-In another terminal:
+Additional prototype modules—context, knowledge, workspace, runtime, validation and dashboard—will be migrated in follow-up commits on this same branch.
 
-```bash
-python -m control_plane.worker
-```
+## Privacy
 
-Create a run with `POST /runs`, inspect it with `GET /runs/{run_id}`, and approve the `approval` gate through the decision endpoint.
-
-All ongoing changes are maintained on `ai-control-plane-dev`.
+Organization-specific names, paths, data models, credentials, internal endpoints and proprietary examples are intentionally excluded or rewritten as generic examples.

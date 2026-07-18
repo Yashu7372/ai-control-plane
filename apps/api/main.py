@@ -5,6 +5,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from packages.approval_engine import ApprovalStore
@@ -20,6 +21,13 @@ router = ModelRouter(
     ]
 )
 app = FastAPI(title="AI Control Plane", version="0.1.0")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[origin.strip() for origin in os.getenv("AI_CONTROL_PLANE_CORS", "http://localhost:3000,http://localhost:8080").split(",")],
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "Authorization"],
+)
 
 
 class TaskCreate(BaseModel):
